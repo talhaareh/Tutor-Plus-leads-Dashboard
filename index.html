@@ -68,7 +68,7 @@
     .detail-name{font-size:16px;font-weight:600;color:#fff;}
     .detail-phone{font-size:11px;color:rgba(255,255,255,0.7);font-family:var(--mono);margin-top:2px;}
     .detail-copy{background:rgba(0,0,0,0.15);border:none;border-radius:6px;padding:6px 12px;color:rgba(255,255,255,0.85);font-family:var(--font);font-size:11px;cursor:pointer;}
-    .detail-body{display:grid;grid-template-columns:1fr 220px;flex:1;overflow:hidden;}
+    .detail-body{display:grid;grid-template-columns:1fr 260px;flex:1;overflow:hidden;}
     .messages-pane{display:flex;flex-direction:column;overflow:hidden;border-right:1px solid var(--border);}
     .messages-header{padding:9px 16px;border-bottom:1px solid var(--border);font-size:11px;font-weight:700;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;background:var(--surface2);flex-shrink:0;display:flex;align-items:center;gap:8px;}
     .msg-count-pill{background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;}
@@ -94,7 +94,7 @@
     select.sel-new{background-color:var(--accent-dim);border-color:var(--green-border);color:var(--accent);}
     select.sel-yes{background-color:var(--green-bg);border-color:var(--green-border);color:var(--green);}
     select.sel-no{background-color:var(--surface2);border-color:var(--border2);color:var(--text-faint);}
-    .field-static{font-size:12px;color:var(--text-muted);}
+    .field-static{font-size:12px;color:var(--text-muted);word-break:break-word;white-space:normal;}
     .save-row{padding:10px 12px;border-top:1px solid var(--border);background:var(--surface2);}
     .save-btn{width:100%;background:var(--accent);border:none;border-radius:6px;padding:9px;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;}
     .save-btn:disabled{opacity:0.5;cursor:not-allowed;}
@@ -187,14 +187,12 @@
     const val=document.getElementById('password-input').value;
     if(val===DASHBOARD_PASSWORD){
       document.getElementById('login-screen').style.display='none';
-      const app=document.getElementById('app');
-      app.style.display='flex';
+      document.getElementById('app').style.display='flex';
       if(!AIRTABLE_TOKEN||!AIRTABLE_BASE_ID)showSettings();
       else loadLeads();
     }else{document.getElementById('login-error').style.display='block';}
   }
   document.getElementById('password-input').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
-
   function showSettings(){
     document.getElementById('settings-token').value=AIRTABLE_TOKEN;
     document.getElementById('settings-base').value=AIRTABLE_BASE_ID;
@@ -209,7 +207,6 @@
     localStorage.setItem('at_token',token);localStorage.setItem('at_base',base);
     closeSettings();showToast('Settings saved ✓','success');loadLeads();
   }
-
   async function fetchAllRecords(){
     let records=[],offset=null;
     const url=`https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE)}`;
@@ -223,7 +220,6 @@
     }while(offset);
     return records;
   }
-
   async function loadLeads(){
     document.getElementById('leads-list').innerHTML='<div class="loading"><div class="spinner"></div> Loading…</div>';
     try{
@@ -235,7 +231,6 @@
       showToast('Failed to load data','error');
     }
   }
-
   function groupRecords(){
     grouped={};
     allRecords.forEach(rec=>{
@@ -247,27 +242,23 @@
       grouped[p].sort((a,b)=>new Date(a.fields['Timestamp']||a.createdTime)-new Date(b.fields['Timestamp']||b.createdTime));
     });
   }
-
   function getLatest(phone,field){
     const rows=grouped[phone];
     for(let i=rows.length-1;i>=0;i--){if(rows[i].fields[field])return rows[i].fields[field];}
     return '';
   }
   function getStatus(phone){return getLatest(phone,'Status')||'New';}
-
   function updateStats(){
     const phones=Object.keys(grouped);
     document.getElementById('stat-total').textContent=phones.length;
     document.getElementById('stat-hot').textContent=phones.filter(p=>getStatus(p)==='Hot').length;
     document.getElementById('stat-converted').textContent=phones.filter(p=>getStatus(p)==='Converted').length;
   }
-
   function setFilter(status){
     activeFilter=status;
     document.querySelectorAll('.filter-chip').forEach(el=>el.classList.toggle('active',el.dataset.status===status));
     renderSidebar();
   }
-
   function renderSidebar(){
     const query=document.getElementById('search-input').value.toLowerCase();
     const list=document.getElementById('leads-list');
@@ -296,14 +287,11 @@
       </div>`;
     }).join('');
   }
-
   function selectLead(phone){activePhone=phone;renderSidebar();renderDetail(phone);}
-
   document.addEventListener('click',function(e){
     const item=e.target.closest('[data-phone]');
     if(item)selectLead(item.dataset.phone);
   });
-
   function renderDetail(phone){
     const rows=grouped[phone];
     const name=getLatest(phone,'Name')||getLatest(phone,'Student Name')||'Unknown';
@@ -337,7 +325,7 @@
               <div class="info-fields">
                 <div class="field-row"><span class="field-label">Phone</span><span class="field-static" style="font-family:var(--mono);font-size:11px">${esc(phone)}</span></div>
                 <div class="field-row"><span class="field-label">Messages</span><span class="field-static">${rows.length}</span></div>
-                <div class="field-row"><span class="field-label">First Contact</span><span class="field-static" style="font-size:11px">${fullTime(rows[0].fields['Timestamp']||rows[0].createdTime)}</span></div>
+                <div class="field-row"><span class="field-label">First Contact</span><span class="field-static">${fullTime(rows[0].fields['Timestamp']||rows[0].createdTime)}</span></div>
               </div>
             </div>
             <div class="info-section">
@@ -382,13 +370,11 @@
       </div>`;
     setTimeout(()=>{const s=document.getElementById('msgs-scroll');if(s)s.scrollTop=s.scrollHeight;},50);
   }
-
   function styleSelect(el,type){
     el.className='field-value';
     if(type==='status'){const m={Hot:'sel-hot',Warm:'sel-warm',Cold:'sel-cold',Converted:'sel-conv',New:'sel-new'};if(m[el.value])el.classList.add(m[el.value]);}
     else{if(el.value==='Yes')el.classList.add('sel-yes');else if(el.value==='No')el.classList.add('sel-no');}
   }
-
   async function saveRecord(recordId,phone){
     const btn=document.getElementById('save-btn');
     btn.disabled=true;btn.textContent='Saving…';
@@ -405,9 +391,7 @@
     }catch(err){showToast(`Save failed: ${err.message}`,'error');}
     finally{btn.disabled=false;btn.textContent='Save Changes';}
   }
-
   function copyPhone(phone){navigator.clipboard.writeText(phone).then(()=>showToast('Copied ✓','success'));}
-
   function relTime(ts){
     if(!ts)return'';
     const diff=Date.now()-new Date(ts);
@@ -416,15 +400,12 @@
     if(diff<86400000)return`${Math.floor(diff/3600000)}h ago`;
     return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
   }
-
   function fullTime(ts){
     if(!ts)return'—';
     return new Date(ts).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:true});
   }
-
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
   function ea(s){return String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
-
   function showToast(msg,type=''){
     const t=document.getElementById('toast');
     t.textContent=msg;t.className=`toast ${type} show`;
