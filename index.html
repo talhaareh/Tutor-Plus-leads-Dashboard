@@ -102,6 +102,19 @@ select.sel-no{background-color:var(--surface2);border-color:var(--border2);color
 .toast.show{opacity:1;transform:translateY(0)}
 .toast.success{border-color:var(--green-border);color:var(--green)}
 .toast.error{border-color:var(--red-border);color:var(--red)}
+/* Send message section */
+.send-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:visible}
+.send-window-badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:6px;text-transform:uppercase}
+.badge-free{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border)}
+.badge-template{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border)}
+.send-fields{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.send-textarea{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;resize:vertical;min-height:72px;line-height:1.5}
+.send-textarea:focus{border-color:var(--accent)}
+.send-select{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:7px 9px;font-family:var(--font);font-size:12px;color:var(--text);outline:none;cursor:pointer}
+.send-select:focus{border-color:var(--accent)}
+.send-btn{width:100%;background:var(--accent);border:none;border-radius:6px;padding:9px;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;margin-top:2px}
+.send-btn:disabled{opacity:.5;cursor:not-allowed}
+.send-hint{font-size:10px;color:var(--text-faint);line-height:1.5}
 </style>
 </head>
 <body>
@@ -156,16 +169,21 @@ select.sel-no{background-color:var(--surface2);border-color:var(--border2);color
 <div class="toast" id="toast"></div>
 <div id="settings-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;align-items:center;justify-content:center">
   <div style="background:#fff;border-radius:14px;padding:36px;width:420px;max-width:95vw;box-shadow:0 8px 32px rgba(0,0,0,.15)">
-    <h2 style="font-size:17px;font-weight:600;color:#111b21;margin-bottom:6px">Airtable Settings</h2>
-    <p style="font-size:13px;color:#8696a0;margin-bottom:24px">Saved in your browser - one time only.</p>
+    <h2 style="font-size:17px;font-weight:600;color:#111b21;margin-bottom:6px">Settings</h2>
+    <p style="font-size:13px;color:#8696a0;margin-bottom:24px">Saved in your browser only. Never sent to GitHub.</p>
     <div style="margin-bottom:14px">
-      <label style="font-size:11px;font-weight:700;color:#667781;text-transform:uppercase;display:block;margin-bottom:6px">Personal Access Token</label>
+      <label style="font-size:11px;font-weight:700;color:#667781;text-transform:uppercase;display:block;margin-bottom:6px">Airtable Personal Access Token</label>
       <input id="settings-token" type="password" placeholder="patXXXXXXXXXXXXXX" style="width:100%;background:#f0f2f5;border:1px solid #e9edef;border-radius:8px;padding:10px 12px;color:#111b21;font-size:13px;outline:none"/>
     </div>
-    <div style="margin-bottom:24px">
-      <label style="font-size:11px;font-weight:700;color:#667781;text-transform:uppercase;display:block;margin-bottom:6px">Base ID</label>
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:#667781;text-transform:uppercase;display:block;margin-bottom:6px">Airtable Base ID</label>
       <input id="settings-base" type="text" placeholder="appXXXXXXXXXXXXXX" style="width:100%;background:#f0f2f5;border:1px solid #e9edef;border-radius:8px;padding:10px 12px;color:#111b21;font-size:13px;outline:none"/>
       <p style="font-size:11px;color:#8696a0;margin-top:6px">From your Airtable URL: airtable.com/appXXXXXX/...</p>
+    </div>
+    <div style="margin-bottom:24px">
+      <label style="font-size:11px;font-weight:700;color:#667781;text-transform:uppercase;display:block;margin-bottom:6px">WhatsApp Access Token</label>
+      <input id="settings-wa-token" type="password" placeholder="EAAxxxxxxxxxxxxxxx" style="width:100%;background:#f0f2f5;border:1px solid #e9edef;border-radius:8px;padding:10px 12px;color:#111b21;font-size:13px;outline:none"/>
+      <p style="font-size:11px;color:#8696a0;margin-top:6px">From Meta developer app. Used to send follow-up messages.</p>
     </div>
     <div style="display:flex;gap:10px">
       <button onclick="saveSettings()" style="flex:1;background:#008069;border:none;border-radius:8px;padding:11px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Save and Connect</button>
@@ -176,12 +194,22 @@ select.sel-no{background-color:var(--surface2);border-color:var(--border2);color
 <script>
 var DASHBOARD_PASSWORD = 'tutorplus2026';
 var AIRTABLE_TABLE = 'Main Table';
+var WA_PHONE_NUMBER_ID = '990535014151158';
 var AIRTABLE_TOKEN = localStorage.getItem('at_token') || '';
 var AIRTABLE_BASE_ID = localStorage.getItem('at_base') || '';
+var WA_TOKEN = localStorage.getItem('wa_token') || '';
 var allRecords = [];
 var grouped = {};
 var activePhone = null;
 var activeFilter = 'all';
+
+var TEMPLATES = [
+  { id: 'tutor_plus_followup_day1', label: 'Follow-up Day 1 — Fee check-in' },
+  { id: 'tutor_plus_followup_day3', label: 'Follow-up Day 3 — Seats reminder' },
+  { id: 'tutor_plus_followup_day7', label: 'Follow-up Day 7 — Final check-in' },
+  { id: 'tutor_plus_early_followup_day2', label: 'Early dropout Day 2 — Soft re-engage' },
+  { id: 'tutor_plus_early_followup_day5', label: 'Early dropout Day 5 — Last touch' }
+];
 
 function doLogin() {
   var val = document.getElementById('password-input').value;
@@ -205,6 +233,7 @@ document.getElementById('password-input').addEventListener('keydown', function(e
 function showSettings() {
   document.getElementById('settings-token').value = AIRTABLE_TOKEN;
   document.getElementById('settings-base').value = AIRTABLE_BASE_ID;
+  document.getElementById('settings-wa-token').value = WA_TOKEN;
   document.getElementById('settings-overlay').style.display = 'flex';
 }
 
@@ -215,11 +244,14 @@ function closeSettings() {
 function saveSettings() {
   var token = document.getElementById('settings-token').value.trim();
   var base = document.getElementById('settings-base').value.trim();
-  if (!token || !base) { showToast('Please fill in both fields', 'error'); return; }
+  var waToken = document.getElementById('settings-wa-token').value.trim();
+  if (!token || !base) { showToast('Please fill in Airtable fields', 'error'); return; }
   AIRTABLE_TOKEN = token;
   AIRTABLE_BASE_ID = base;
+  WA_TOKEN = waToken;
   localStorage.setItem('at_token', token);
   localStorage.setItem('at_base', base);
+  if (waToken) localStorage.setItem('wa_token', waToken);
   closeSettings();
   showToast('Settings saved', 'success');
   loadLeads();
@@ -228,7 +260,6 @@ function saveSettings() {
 function fetchAllRecords() {
   var records = [];
   var url = 'https://api.airtable.com/v0/' + AIRTABLE_BASE_ID + '/' + encodeURIComponent(AIRTABLE_TABLE);
-
   function fetchPage(offset) {
     var params = '?pageSize=100';
     if (offset) params += '&offset=' + offset;
@@ -286,6 +317,21 @@ function getLatest(phone, field) {
 
 function getStatus(phone) { return getLatest(phone, 'Status') || 'New'; }
 
+function getLastMessageTimestamp(phone) {
+  var rows = grouped[phone];
+  for (var i = rows.length - 1; i >= 0; i--) {
+    if (rows[i].fields['Timestamp']) return rows[i].fields['Timestamp'];
+  }
+  return null;
+}
+
+function isWithin24Hours(phone) {
+  var ts = getLastMessageTimestamp(phone);
+  if (!ts) return false;
+  var diff = Date.now() - new Date(ts).getTime();
+  return diff < 24 * 60 * 60 * 1000;
+}
+
 function updateStats() {
   var phones = Object.keys(grouped);
   document.getElementById('stat-total').textContent = phones.length;
@@ -308,17 +354,13 @@ function renderSidebar() {
     var name = (getLatest(p, 'Name') + ' ' + getLatest(p, 'Student Name')).toLowerCase();
     return (!query || p.includes(query) || name.includes(query)) && (activeFilter === 'all' || getStatus(p) === activeFilter);
   });
-
   phones.sort(function(a, b) {
     var ta = grouped[a][grouped[a].length - 1].fields['Timestamp'] || grouped[a][grouped[a].length - 1].createdTime;
     var tb = grouped[b][grouped[b].length - 1].fields['Timestamp'] || grouped[b][grouped[b].length - 1].createdTime;
     return new Date(tb) - new Date(ta);
   });
-
   if (!phones.length) { list.innerHTML = '<div class="no-leads">No leads found.</div>'; return; }
-
   var bc = { Hot: 'b-hot', Warm: 'b-warm', Cold: 'b-cold', Converted: 'b-conv', New: 'b-new', Unqualified: 'b-unq' };
-
   list.innerHTML = phones.map(function(phone) {
     var name = getLatest(phone, 'Name') || getLatest(phone, 'Student Name') || 'Unknown';
     var status = getStatus(phone);
@@ -329,11 +371,15 @@ function renderSidebar() {
     var badgeClass = bc[status] || 'b-new';
     var preview = esc(lastMsg.slice(0, 70)) + (lastMsg.length > 70 ? '...' : '');
     var msgCount = rows.length + ' msg' + (rows.length !== 1 ? 's' : '');
+    var windowOpen = isWithin24Hours(phone);
+    var windowBadge = windowOpen
+      ? '<span class="badge badge-free">Free window</span>'
+      : '<span class="badge b-cold">Window closed</span>';
     return '<div class="lead-item ' + active + '" data-phone="' + esc(phone) + '">' +
       '<div class="lead-row1"><span class="lead-name">' + esc(name) + '</span><span class="lead-time">' + relTime(lastTs) + '</span></div>' +
       '<div class="lead-phone">' + esc(phone) + '</div>' +
       '<div class="lead-preview">' + preview + '</div>' +
-      '<div class="lead-meta"><span class="badge ' + badgeClass + '">' + status + '</span><span class="badge b-msg">' + msgCount + '</span></div>' +
+      '<div class="lead-meta"><span class="badge ' + badgeClass + '">' + status + '</span><span class="badge b-msg">' + msgCount + '</span>' + windowBadge + '</div>' +
       '</div>';
   }).join('');
 }
@@ -349,6 +395,82 @@ function selectLead(phone) {
   renderDetail(phone);
 }
 
+function buildSendSection(phone) {
+  var windowOpen = isWithin24Hours(phone);
+  var badgeHtml = windowOpen
+    ? '<span class="send-window-badge badge-free">Free window open</span>'
+    : '<span class="send-window-badge badge-template">Template required</span>';
+  var hintText = windowOpen
+    ? 'Last message was under 24 hours ago. You can send any custom message for free.'
+    : 'Last message was over 24 hours ago. Select a pre-approved template to send.';
+
+  var inputHtml = windowOpen
+    ? '<textarea class="send-textarea" id="send-input" placeholder="Type your message here..."></textarea>'
+    : '<select class="send-select" id="send-input">' +
+        TEMPLATES.map(function(t) {
+          return '<option value="' + t.id + '">' + t.label + '</option>';
+        }).join('') +
+      '</select>';
+
+  return '<div class="send-section">' +
+    '<div class="info-section-title">Send Follow-Up' + badgeHtml + '</div>' +
+    '<div class="send-fields">' +
+      '<div class="send-hint">' + hintText + '</div>' +
+      inputHtml +
+      '<button class="send-btn" id="send-btn" onclick="sendFollowUp(\'' + esc(phone) + '\')">Send Message</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function sendFollowUp(phone) {
+  if (!WA_TOKEN) {
+    showToast('Add WhatsApp token in Settings first', 'error');
+    return;
+  }
+  var btn = document.getElementById('send-btn');
+  var input = document.getElementById('send-input');
+  if (!input) return;
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+  var windowOpen = isWithin24Hours(phone);
+  var cleanPhone = phone.replace(/\D/g, '');
+  var body;
+  if (windowOpen) {
+    var text = input.value.trim();
+    if (!text) { showToast('Please type a message', 'error'); btn.disabled = false; btn.textContent = 'Send Message'; return; }
+    body = JSON.stringify({ messaging_product: 'whatsapp', to: cleanPhone, type: 'text', text: { body: text } });
+  } else {
+    var templateName = input.value;
+    body = JSON.stringify({
+      messaging_product: 'whatsapp',
+      to: cleanPhone,
+      type: 'template',
+      template: { name: templateName, language: { code: 'en' } }
+    });
+  }
+  fetch('https://graph.facebook.com/v19.0/' + WA_PHONE_NUMBER_ID + '/messages', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + WA_TOKEN,
+      'Content-Type': 'application/json'
+    },
+    body: body
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.error) throw new Error(data.error.message);
+    showToast('Message sent', 'success');
+    if (windowOpen) input.value = '';
+  })
+  .catch(function(err) {
+    showToast('Failed: ' + err.message, 'error');
+  })
+  .finally(function() {
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  });
+}
+
 function renderDetail(phone) {
   var rows = grouped[phone];
   var name = getLatest(phone, 'Name') || getLatest(phone, 'Student Name') || 'Unknown';
@@ -362,16 +484,13 @@ function renderDetail(phone) {
   var program = getLatest(phone, 'Program') || '';
   var timeline = getLatest(phone, 'Timeline') || '';
   var firstContact = fullTime(rows[0].fields['Timestamp'] || rows[0].createdTime);
-
   var sc = { Hot: 'sel-hot', Warm: 'sel-warm', Cold: 'sel-cold', Converted: 'sel-conv', New: 'sel-new' };
   var statusClass = sc[status] || '';
   var feeClass = feeShared === 'Yes' ? 'sel-yes' : (feeShared === 'No' ? 'sel-no' : '');
   var callClass = callBooked === 'Yes' ? 'sel-yes' : (callBooked === 'No' ? 'sel-no' : '');
-
   var statusOptions = ['New', 'Hot', 'Warm', 'Cold', 'Converted', 'Unqualified'].map(function(s) {
     return '<option value="' + s + '"' + (status === s ? ' selected' : '') + '>' + s + '</option>';
   }).join('');
-
   var msgs = rows.map(function(rec, i) {
     var ts = rec.fields['Timestamp'] || rec.createdTime;
     var txt = rec.fields['Conversation Summary'] || '(no message)';
@@ -436,13 +555,13 @@ function renderDetail(phone) {
               '<button class="save-btn" id="save-btn">Save Changes</button>' +
             '</div>' +
           '</div>' +
+          buildSendSection(phone) +
         '</div>' +
       '</div>' +
     '</div>';
 
   document.getElementById('copy-btn').addEventListener('click', function() { copyPhone(phone); });
   document.getElementById('save-btn').addEventListener('click', function() { saveRecord(latestId, phone); });
-
   var sc2 = document.getElementById('msgs-scroll');
   if (sc2) sc2.scrollTop = sc2.scrollHeight;
 }
